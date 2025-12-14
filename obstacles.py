@@ -1,25 +1,24 @@
 import pygame
 import random
 import os
-from settings import *
+from settings import SCREEN_WIDTH, SPRITE_SHEET_PATH, GROUND_Y_POS
 from sprite_sheet import SpriteSheet
 
 
 class Obstacle:
-    def __init__(self, image, speed, y_pos, type_obj):
+    def __init__(self, image, speed: float, y_pos: int, type_obj: str):
         self.image = image
         self.rect = self.image.get_rect()
         self.rect.x = SCREEN_WIDTH + 50
         self.rect.y = y_pos
         self.type = type_obj
 
-        # Posición exacta para suavidad
         self.exact_x = float(self.rect.x)
 
         self.step_index = 0
         self.images = [image]
 
-    def update(self, speed):
+    def update(self, speed: float) -> None:
         self.exact_x -= speed
         self.rect.x = int(self.exact_x)
 
@@ -30,7 +29,7 @@ class Obstacle:
             frame = 0 if self.step_index < 5 else 1
             self.image = self.images[frame]
 
-    def draw(self, screen):
+    def draw(self, screen) -> None:
         screen.blit(self.image, (self.rect.x, self.rect.y))
 
 
@@ -39,26 +38,18 @@ class ObstacleManager:
         self.sheet = SpriteSheet(SPRITE_SHEET_PATH)
         self.obstacles = []
         self.ground_offset = 15
+        self.last_spawn_time = 0
 
-        # --- CARGA MIXTA ---
-
-        # 1. AVES (Desde archivos individuales)
         def load_bird(name):
             path = os.path.join("sprites", name)
             img = pygame.image.load(path).convert_alpha()
-            return pygame.transform.scale(
-                img, (46, 40)
-            )  # Escala adecuada para el juego
+            return pygame.transform.scale(img, (46, 40))
 
         self.bird_images = [
             load_bird("Terodactilo1.png"),
             load_bird("Terodactilo2.png"),
         ]
 
-        # 2. CACTUS (Desde SpriteSheet 'offline-sprite-2x.png')
-        # Si consigues archivos de cactus, avísame y cambiamos esto.
-
-        # Cactus Pequeños
         self.small_cactus = [
             self.sheet.get_image(446, 2, 34, 70),
             self.sheet.get_image(480, 2, 34, 70),
@@ -68,7 +59,6 @@ class ObstacleManager:
             self.sheet.get_image(616, 2, 34, 70),
         ]
 
-        # Cactus Grandes
         self.large_cactus = [
             self.sheet.get_image(652, 2, 50, 100),
             self.sheet.get_image(702, 2, 50, 100),
@@ -79,7 +69,7 @@ class ObstacleManager:
         self.distance_to_next_spawn = random.randint(800, 1200)
         self.distance_traveled = 0
 
-    def update(self, current_speed, current_score):
+    def update(self, current_speed: float, current_score: int) -> None:
         if self.obstacles:
             if self.obstacles[0].rect.right < -100:
                 self.obstacles.pop(0)
@@ -96,7 +86,7 @@ class ObstacleManager:
                 current_speed, current_score
             )
 
-    def calculate_next_gap(self, speed, score):
+    def calculate_next_gap(self, speed: float, score: int) -> float:
         base_gap = speed * 75
         if score < 150:
             variance = random.randint(400, 900)
@@ -106,7 +96,7 @@ class ObstacleManager:
             variance = random.randint(150, 400)
         return base_gap + variance
 
-    def spawn_obstacle(self, speed, score):
+    def spawn_obstacle(self, speed: float, score: int) -> None:
         final_y_pos = 0
 
         if score < 150:
@@ -127,13 +117,12 @@ class ObstacleManager:
 
         else:
             if random.random() < 0.25:
-                # Pájaro
                 y_pos = random.choice(self.bird_heights)
                 if score < 700 and y_pos == self.bird_heights[0]:
                     y_pos = self.bird_heights[1]
 
                 obs = Obstacle(self.bird_images[0], speed, y_pos, "bird")
-                obs.images = self.bird_images  # Asignar animación
+                obs.images = self.bird_images
                 self.obstacles.append(obs)
             else:
                 if random.random() < 0.5:
@@ -147,6 +136,6 @@ class ObstacleManager:
                 obs = Obstacle(img, speed, final_y_pos, "cactus")
                 self.obstacles.append(obs)
 
-    def draw(self, screen):
+    def draw(self, screen) -> None:
         for obs in self.obstacles:
             obs.draw(screen)
